@@ -49,8 +49,9 @@ export interface DonationCause {
   title: string;
   description: string;
   raised: number;
-  goal: number;
+  goal_amount: number;
   icon: string;
+  current_amount: number;
 }
 
 export const orphans: Orphan[] = [
@@ -83,14 +84,40 @@ export const blogPosts: BlogPost[] = [
   { id: "b4", title: "Ramadan : un mois de générosité et de compassion", excerpt: "À l'approche du Ramadan, découvrez comment maximiser vos dons caritatifs et multiplier vos récompenses durant ce mois béni.", content: "Le Ramadan est le mois de la générosité, de la compassion et de l'adoration accrue. C'est un moment où les récompenses des bonnes actions sont multipliées...\n\nComment maximiser vos dons pendant le Ramadan :\n1. Mettre en place des dons récurrents\n2. Parrainer les repas d'iftar d'un orphelin\n3. Contribuer à notre fonds Zakat\n4. Partager notre mission avec vos proches", author: "Imam Khalid Mahmoud", date: "2026-02-08", category: "Saisonnier", image: "https://images.unsplash.com/photo-1564769625905-50e93615e769?w=600", readTime: "4 min" },
 ];
 
-export const donationCauses: DonationCause[] = [
-  { id: "c1", title: "Aide aux orphelins", description: "Offrir nourriture, éducation et soins médicaux aux enfants orphelins", raised: 125000, goal: 200000, icon: "Heart" },
-  { id: "c2", title: "Soutien aux veuves", description: "Aider les veuves à subvenir aux besoins de leurs familles avec une aide mensuelle", raised: 85000, goal: 150000, icon: "HandHeart" },
-  { id: "c3", title: "Aide aux familles", description: "Soutenir les familles déplacées avec logement, nourriture et produits essentiels", raised: 95000, goal: 180000, icon: "Home" },
-  { id: "c4", title: "Fonds éducation", description: "Construire des écoles et offrir des bourses aux enfants défavorisés", raised: 60000, goal: 120000, icon: "GraduationCap" },
-  { id: "c5", title: "Aide d'urgence", description: "Aide immédiate aux communautés touchées par les conflits et catastrophes", raised: 140000, goal: 250000, icon: "Siren" },
-  { id: "c6", title: "Fonds Zakat", description: "Distribuer votre Zakat aux bénéficiaires éligibles à travers nos programmes", raised: 200000, goal: 300000, icon: "Coins" },
-];
+// export const donationCauses: DonationCause[] = [
+//   { id: "c1", title: "Aide aux orphelins", description: "Offrir nourriture, éducation et soins médicaux aux enfants orphelins", raised: 125000, goal: 200000, icon: "Heart" },
+//   { id: "c2", title: "Soutien aux veuves", description: "Aider les veuves à subvenir aux besoins de leurs familles avec une aide mensuelle", raised: 85000, goal: 150000, icon: "HandHeart" },
+//   { id: "c3", title: "Aide aux familles", description: "Soutenir les familles déplacées avec logement, nourriture et produits essentiels", raised: 95000, goal: 180000, icon: "Home" },
+//   { id: "c4", title: "Fonds éducation", description: "Construire des écoles et offrir des bourses aux enfants défavorisés", raised: 60000, goal: 120000, icon: "GraduationCap" },
+//   { id: "c5", title: "Aide d'urgence", description: "Aide immédiate aux communautés touchées par les conflits et catastrophes", raised: 140000, goal: 250000, icon: "Siren" },
+//   { id: "c6", title: "Fonds Zakat", description: "Distribuer votre Zakat aux bénéficiaires éligibles à travers nos programmes", raised: 200000, goal: 300000, icon: "Coins" },
+// ];
+
+
+// export const fetchDonationCauses = async (): Promise<DonationCause[]> => {
+//   try {
+//     const response = await fetch('http://localhost:8000/api/campaigns');
+//     if (!response.ok) {
+//       throw new Error('Failed to fetch donation causes');
+//     }
+//     return await response.json();
+//   } catch (error) {
+//     console.error("Error fetching donation causes:", error);
+//     return [];
+//   }
+// };
+
+
+
+// export const fetchDonationCauses = async (): Promise<DonationCause[]> => {
+//   const response = await fetch('http://localhost:8000/donations');
+//   if (!response.ok) {
+//     throw new Error('Failed to fetch donation causes');
+//   }
+//   return response.json();
+// };
+
+
 
 export const impactStats = {
   orphansSponsored: 1240,

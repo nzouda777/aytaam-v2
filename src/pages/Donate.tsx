@@ -1,55 +1,101 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { Heart, CreditCard, CheckCircle, ArrowLeft, MapPin, Star, Download } from "lucide-react";
+import { Heart, CreditCard, CheckCircle, ArrowLeft, Star } from "lucide-react";
 import Layout from "@/components/Layout";
 import ProcessingScreen from "@/components/ProcessingScreen";
-import { donationCauses, orphans, widows, families } from "@/data/mockData";
+import { DonationCause } from "@/data/mockData";
 import { toast } from "sonner";
 
 const presetAmounts = [25, 50, 100, 250, 500, 1000];
 
+const fetchDonationCauses = async (): Promise<DonationCause[]> => {
+  try {
+    const response = await fetch('http://localhost:8000/api/campaigns');
+    if (!response.ok) {
+      throw new Error('Failed to fetch donation causes');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching donation causes:", error);
+    return [];
+  }
+};
+
 const Donate = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const causeParam = searchParams.get("cause");
-  const typeParam = searchParams.get("type");
-  const categoryParam = searchParams.get("category");
-  const idParam = searchParams.get("id");
 
   const getInitialCause = () => {
-    if (causeParam) return causeParam;
-    if (typeParam === "sponsorship") {
-      if (categoryParam === "orphan") return "c1";
-      if (categoryParam === "widow") return "c2";
-      if (categoryParam === "family") return "c3";
-    }
-    return "c1";
+    return causeParam || "c1";
   };
-
-  const getBeneficiary = () => {
-    if (!idParam) return null;
-    const all = [...orphans, ...widows, ...families];
-    return all.find((p) => p.id === idParam) || null;
-  };
-
-  const beneficiary = getBeneficiary();
-  const isSponsorship = typeParam === "sponsorship";
 
   const [step, setStep] = useState(1);
   const [selectedCause, setSelectedCause] = useState(getInitialCause());
-  const [amount, setAmount] = useState(isSponsorship && beneficiary ? beneficiary.monthlyNeed.toString() : "");
-  const [customAmount, setCustomAmount] = useState("");
-  const [donationType, setDonationType] = useState<"one-time" | "monthly">(isSponsorship ? "monthly" : "one-time");
+  const [amount, setAmount] = useState(searchParams.get("amount") || "");
+  const [customAmount, setCustomAmount] = useState(searchParams.get("amount") && !presetAmounts.includes(Number(searchParams.get("amount"))) ? searchParams.get("amount")! : "");
   const [formData, setFormData] = useState({ firstName: "", lastName: "", email: "", phone: "" });
   const [paymentData, setPaymentData] = useState({ cardNumber: "", expiry: "", cvv: "", nameOnCard: "" });
   const [processing, setProcessing] = useState(false);
+  const [donationCauses, setDonationCauses] = useState<DonationCause[]>([]);
+
+  useEffect(() => {
+    fetchDonationCauses().then((data: any) => setDonationCauses(data?.data || []));
+  }, []);
+
+  // Sync state with URL parameters
+  useEffect(() => {
+    if (causeParam && causeParam !== selectedCause) {
+      setSelectedCause(causeParam);
+    }
+
+    const amountVal = searchParams.get("amount");
+    if (amountVal && amountVal !== (amount || customAmount)) {
+      if (presetAmounts.includes(Number(amountVal))) {
+        setAmount(amountVal);
+        setCustomAmount("");
+      } else {
+        setAmount("");
+        setCustomAmount(amountVal);
+      }
+    }
+  }, [causeParam, searchParams.get("amount")]);
+
+  const updateURL = (params: Record<string, string>) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
+
+    setSearchParams(newParams);
+  };
+
+  const handleCauseChange = (id: string) => {
+    setSelectedCause(id);
+    updateURL({ cause: id });
+  };
+
+  const handleAmountChange = (val: string, isCustom: boolean) => {
+    if (isCustom) {
+      setCustomAmount(val);
+      setAmount("");
+    } else {
+      setAmount(val);
+      setCustomAmount("");
+    }
+    updateURL({ amount: val });
+  };
 
   const finalAmount = amount || customAmount;
-  const cause = donationCauses.find((c) => c.id === selectedCause);
+  const cause = donationCauses.find((c) => String(c.id) === String(selectedCause));
 
   const isFieldValid = (val: string) => val.trim().length > 0;
   const isEmailValid = (val: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
@@ -92,33 +138,12 @@ const Donate = () => {
       <div className="gradient-hero pattern-islamic py-16">
         <div className="container mx-auto px-4 text-center">
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="font-display text-3xl md:text-4xl font-bold text-primary-foreground mb-2">
-            {isSponsorship ? "Parrainer" : "Faire un don"}
+            Faire un don
           </motion.h1>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-12 max-w-2xl">
-        {/* Beneficiary banner */}
-        {beneficiary && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-secondary rounded-xl p-4 mb-8 flex items-center gap-4 border border-border"
-          >
-            <img src={beneficiary.image} alt={beneficiary.name} className="w-16 h-16 rounded-full object-cover border-2 border-primary" />
-            <div className="flex-1">
-              <p className="font-semibold text-foreground">{beneficiary.name}</p>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <MapPin className="w-3 h-3" /> {beneficiary.location}
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Besoin mensuel</p>
-              <p className="text-lg font-bold text-primary">{beneficiary.monthlyNeed} $</p>
-            </div>
-          </motion.div>
-        )}
-
         {/* Processing screen */}
         {processing && <ProcessingScreen onComplete={handleProcessingComplete} amount={finalAmount} />}
 
@@ -130,9 +155,8 @@ const Donate = () => {
                 <div key={s} className="flex items-center gap-2">
                   <motion.div
                     animate={step >= s ? { scale: [1, 1.2, 1] } : {}}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
-                      step >= s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                    }`}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${step >= s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                      }`}
                   >
                     {step > s ? <CheckCircle className="w-5 h-5" /> : s}
                   </motion.div>
@@ -152,39 +176,17 @@ const Donate = () => {
                         key={c.id}
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
-                        onClick={() => setSelectedCause(c.id)}
-                        className={`p-3 rounded-lg border text-left text-sm font-medium transition-all ${
-                          selectedCause === c.id
-                            ? "border-primary bg-emerald-light text-primary shadow-sm"
-                            : "border-border bg-card text-card-foreground hover:border-primary/50"
-                        }`}
+                        onClick={() => handleCauseChange(c.id)}
+                        className={`p-3 rounded-lg border text-left text-sm font-medium transition-all ${String(selectedCause) === String(c.id)
+                          ? "border-primary bg-emerald-light text-primary shadow-sm"
+                          : "border-border bg-card text-card-foreground hover:border-primary/50"
+                          }`}
                       >
                         {c.title}
                       </motion.button>
                     ))}
                   </div>
                   {cause && <p className="text-sm text-muted-foreground mt-2">{cause.description}</p>}
-                </div>
-
-                <div>
-                  <h2 className="font-display text-2xl font-bold text-foreground mb-4">Type de don</h2>
-                  <div className="flex gap-3">
-                    {(["one-time", "monthly"] as const).map((t) => (
-                      <motion.button
-                        key={t}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setDonationType(t)}
-                        className={`flex-1 py-3 rounded-lg border text-sm font-semibold transition-all ${
-                          donationType === t
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border bg-card text-card-foreground hover:border-primary/50"
-                        }`}
-                      >
-                        {t === "one-time" ? "Ponctuel" : "Mensuel"}
-                      </motion.button>
-                    ))}
-                  </div>
                 </div>
 
                 <div>
@@ -195,12 +197,11 @@ const Donate = () => {
                         key={a}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => { setAmount(a.toString()); setCustomAmount(""); }}
-                        className={`py-3 rounded-lg border text-center font-semibold transition-all ${
-                          amount === a.toString()
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border bg-card text-card-foreground hover:border-primary/50"
-                        }`}
+                        onClick={() => handleAmountChange(a.toString(), false)}
+                        className={`py-3 rounded-lg border text-center font-semibold transition-all ${amount === a.toString()
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-card text-card-foreground hover:border-primary/50"
+                          }`}
                       >
                         {a} $
                       </motion.button>
@@ -215,14 +216,14 @@ const Donate = () => {
                         placeholder="0.00"
                         className="pl-7"
                         value={customAmount}
-                        onChange={(e) => { setCustomAmount(e.target.value); setAmount(""); }}
+                        onChange={(e) => handleAmountChange(e.target.value, true)}
                       />
                     </div>
                   </div>
                 </div>
 
                 <Button onClick={handleDonate} size="lg" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
-                  Continuer — {finalAmount || "0"} $ {donationType === "monthly" ? "/mois" : ""}
+                  Continuer — {finalAmount || "0"} $
                 </Button>
               </motion.div>
             )}
@@ -277,19 +278,13 @@ const Donate = () => {
                     <span className="text-muted-foreground">Cause</span>
                     <span className="font-medium text-foreground">{cause?.title}</span>
                   </div>
-                  {beneficiary && (
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">Bénéficiaire</span>
-                      <span className="font-medium text-foreground">{beneficiary.name}</span>
-                    </div>
-                  )}
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-muted-foreground">Type</span>
-                    <span className="font-medium text-foreground">{donationType === "one-time" ? "Ponctuel" : "Mensuel"}</span>
+                    <span className="font-medium text-foreground">Ponctuel</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Montant</span>
-                    <span className="font-bold text-primary text-lg">{finalAmount} ${donationType === "monthly" ? "/mois" : ""}</span>
+                    <span className="font-bold text-primary text-lg">{finalAmount} $</span>
                   </div>
                 </div>
 
@@ -367,33 +362,9 @@ const Donate = () => {
 
                 <h2 className="font-display text-3xl font-bold text-foreground">JazakAllahu Khairan !</h2>
                 <p className="text-muted-foreground max-w-md mx-auto">
-                  Votre don {donationType === "monthly" ? "mensuel" : "ponctuel"} de <strong className="text-primary">{finalAmount} $</strong> pour{" "}
+                  Votre don ponctuel de <strong className="text-primary">{finalAmount} $</strong> pour{" "}
                   <strong>{cause?.title}</strong> a bien été reçu.
-                  {beneficiary && <> Vous parrainez désormais <strong>{beneficiary.name}</strong>.</>}
                 </p>
-
-                {/* Sponsoring certificate preview */}
-                {beneficiary && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="bg-card border-2 border-gold/30 rounded-xl p-6 max-w-sm mx-auto"
-                  >
-                    <div className="text-center space-y-3">
-                      <p className="text-xs uppercase tracking-widest text-gold font-semibold">Certificat de parrainage</p>
-                      <div className="w-1 h-6 bg-gold mx-auto rounded-full" />
-                      <img src={beneficiary.image} alt={beneficiary.name} className="w-20 h-20 rounded-full mx-auto object-cover border-2 border-gold" />
-                      <p className="font-display text-lg font-bold text-foreground">{beneficiary.name}</p>
-                      <p className="text-sm text-muted-foreground">{beneficiary.location}</p>
-                      <p className="text-sm text-muted-foreground">Parrainé par <strong>{formData.firstName} {formData.lastName}</strong></p>
-                      <p className="text-primary font-bold">{finalAmount} $/mois</p>
-                      <Button variant="outline" size="sm" className="mt-2 border-gold text-gold hover:bg-gold hover:text-white">
-                        <Download className="w-3 h-3 mr-1" /> Télécharger le certificat
-                      </Button>
-                    </div>
-                  </motion.div>
-                )}
 
                 <p className="text-sm text-muted-foreground">
                   Une confirmation a été envoyée à <strong>{formData.email}</strong>.
@@ -416,3 +387,4 @@ const Donate = () => {
 };
 
 export default Donate;
+

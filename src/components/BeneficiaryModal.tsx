@@ -31,7 +31,7 @@ const BeneficiaryModal = ({ open, onClose, beneficiary, type }: BeneficiaryModal
 
   const handleSponsor = () => {
     onClose();
-    navigate(`/donate?type=sponsorship&category=${type}&id=${beneficiary.id}`);
+    navigate(`/sponsor-checkout?category=${type}&id=${beneficiary.id}`);
   };
 
   return (

@@ -5,9 +5,9 @@ import { Heart, ArrowRight, BookOpen, Sparkles, Quote, Star, Globe, Mail, Users,
 import Layout from "@/components/Layout";
 import ImpactStats from "@/components/ImpactStats";
 import SponsorCard from "@/components/SponsorCard";
-import { orphans, widows, donationCauses, blogPosts } from "@/data/mockData";
+import { orphans, blogPosts, DonationCause } from "@/data/mockData";
 import heroBg from "@/assets/hero-bg.jpg";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const heroWords = ["Changez une vie,", "Gagnez votre récompense"];
 
@@ -25,13 +25,30 @@ const partners = [
   { name: "Fonds Global Oummah", icon: Users },
 ];
 
+const fetchDonationCauses = async (): Promise<DonationCause[]> => {
+  try {
+    const response = await fetch('http://localhost:8000/api/campaigns');
+    if (!response.ok) {
+      throw new Error('Failed to fetch donation causes');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching donation causes:", error);
+    return [];
+  }
+};
+
 const Index = () => {
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 150]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
   const [email, setEmail] = useState("");
-
+  const [donationCauses, setDonationCauses] = useState<DonationCause[]>([]);
+  useEffect(() => {
+    fetchDonationCauses().then((data) => setDonationCauses(data.data));
+  }, []);
+  
   return (
     <Layout>
       {/* Hero with parallax */}
@@ -70,7 +87,7 @@ const Index = () => {
               </Link>
               <Link to="/sponsorship">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 font-semibold text-base px-8">
+                  <Button size="lg" variant="outline" className="border-primary-foreground/30 text-foreground hover:bg-primary-foreground/10 hover:text-white font-semibold text-base px-8">
                     Parrainer un enfant <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
                 </motion.div>
@@ -95,11 +112,11 @@ const Index = () => {
                 <h3 className="font-display text-xl font-semibold text-card-foreground mb-2">{cause.title}</h3>
                 <p className="text-sm text-muted-foreground mb-4">{cause.description}</p>
                 <div className="w-full bg-muted rounded-full h-2.5 mb-2 overflow-hidden">
-                  <motion.div className="h-full rounded-full gradient-gold" initial={{ width: "0%" }} whileInView={{ width: `${(cause.raised / cause.goal) * 100}%` }} viewport={{ once: true }} transition={{ duration: 1.2, delay: i * 0.1, ease: "easeOut" }} />
+                  <motion.div className="h-full rounded-full gradient-gold" initial={{ width: "0%" }} whileInView={{ width: `${(cause.current_amount / cause.goal_amount) * 100}%` }} viewport={{ once: true }} transition={{ duration: 1.2, delay: i * 0.1, ease: "easeOut" }} />
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-primary font-semibold">{cause.raised.toLocaleString()} $ collectés</span>
-                  <span className="text-muted-foreground">sur {cause.goal.toLocaleString()} $</span>
+                  <span className="text-primary font-semibold">{cause.current_amount} $ collectés</span>
+                  <span className="text-muted-foreground">sur {cause.goal_amount} $</span>
                 </div>
                 <Link to={`/donate?cause=${cause.id}`}>
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
@@ -282,8 +299,8 @@ const Index = () => {
         <div className="container mx-auto px-4 text-center relative z-10">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
             <Sparkles className="w-8 h-8 mx-auto mb-4 text-gold animate-float" />
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground mb-4">Chaque euro compte</h2>
-            <p className="text-primary-foreground/80 max-w-xl mx-auto mb-8 text-lg">Votre don aujourd'hui peut offrir nourriture, abri, éducation et espoir à ceux qui en ont le plus besoin.</p>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">Chaque euro compte</h2>
+            <p className="text-foreground/80 max-w-xl mx-auto mb-8 text-lg">Votre don aujourd'hui peut offrir nourriture, abri, éducation et espoir à ceux qui en ont le plus besoin.</p>
             <Link to="/donate">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
                 <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold text-base px-10 shadow-xl animate-pulse-glow">
