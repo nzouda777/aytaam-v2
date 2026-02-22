@@ -26,7 +26,7 @@ const About = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="font-display text-3xl md:text-5xl font-bold text-primary-foreground mb-4"
+            className="font-display text-3xl md:text-5xl font-bold text-foreground mb-4"
           >
             À propos d'UmmahCare
           </motion.h1>
@@ -34,7 +34,7 @@ const About = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-primary-foreground/80 text-lg leading-relaxed"
+            className="text-foreground/80 text-lg leading-relaxed"
           >
             Fondée sur les principes de la charité islamique, UmmahCare se consacre à transformer la vie des orphelins, veuves et familles dans le besoin à travers le monde musulman.
           </motion.p>

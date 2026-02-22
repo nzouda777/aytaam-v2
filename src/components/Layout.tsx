@@ -148,10 +148,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   <Mail className="w-4 h-4 text-accent" /> info@ummahcare.org
                 </a>
                 <a href="tel:+15551234567" className="flex items-center gap-3 hover:text-accent transition-colors">
-                  <Phone className="w-4 h-4 text-accent" /> +1 (555) 123-4567
+                  <Phone className="w-4 h-4 text-accent" /> +237 6 000 000 000
                 </a>
                 <span className="flex items-start gap-3">
-                  <MapPin className="w-4 h-4 text-accent mt-0.5 shrink-0" /> 123 Charity Lane, New York, NY 10001
+                  <MapPin className="w-4 h-4 text-accent mt-0.5 shrink-0" /> Mosque AL-Rawda face UCB, Douala, Cameroun
                 </span>
               </div>
 

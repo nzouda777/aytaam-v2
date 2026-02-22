@@ -53,11 +53,11 @@ const SponsorCard = ({ id, name, age, location, story, monthlyNeed, image, spons
         </div>
         {children !== undefined && <p className="text-sm text-muted-foreground mt-1">{children} enfants</p>}
         {members !== undefined && <p className="text-sm text-muted-foreground mt-1">{members} membres</p>}
-        <p className="text-sm text-muted-foreground mt-3 line-clamp-2">{story}</p>
+        <p className="text-sm text-muted-foreground mt-3 line-clamp-2 whitespace-pre-line">{story}</p>
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
           <div>
             <p className="text-xs text-muted-foreground">Besoin mensuel</p>
-            <p className="text-lg font-bold text-primary">{monthlyNeed} $</p>
+            <p className="text-lg font-bold text-primary">{monthlyNeed} FCFA</p>
           </div>
           {!sponsored ? (
             <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">

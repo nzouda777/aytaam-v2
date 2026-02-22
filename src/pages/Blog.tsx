@@ -25,11 +25,11 @@ const Blog = () => {
         <motion.div animate={{ y: [-15, 15, -15] }} transition={{ duration: 5, repeat: Infinity }} className="absolute top-8 left-20 w-14 h-14 border border-primary-foreground/10 rounded-full" />
         <motion.div animate={{ y: [10, -20, 10], x: [-5, 5, -5] }} transition={{ duration: 7, repeat: Infinity }} className="absolute bottom-10 right-16 w-10 h-10 border border-primary-foreground/10 rotate-45" />
         <div className="container mx-auto px-4 text-center relative z-10">
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs font-semibold text-gold-light uppercase tracking-widest mb-3 block">
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs font-semibold text-gold uppercase tracking-widest mb-3 block">
             Histoires & Actualités
           </motion.span>
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="font-display text-3xl md:text-5xl font-bold text-primary-foreground mb-4">Notre blog</motion.h1>
-          <motion.p initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-primary-foreground/80 max-w-xl mx-auto text-lg">
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="font-display text-3xl md:text-5xl font-bold text-foreground mb-4">Notre blog</motion.h1>
+          <motion.p initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-foreground/80 max-w-xl mx-auto text-lg">
             Histoires d'impact, enseignements islamiques et actualités de nos programmes.
           </motion.p>
         </div>

@@ -70,13 +70,13 @@ const BeneficiaryModal = ({ open, onClose, beneficiary, type }: BeneficiaryModal
 
           <div>
             <h3 className="font-semibold text-foreground mb-2">Leur histoire</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">{beneficiary.story}</p>
+            <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-line">{beneficiary.story}</p>
           </div>
 
           <div className="bg-secondary rounded-xl p-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Besoin mensuel</p>
-              <p className="text-2xl font-bold text-primary">{beneficiary.monthlyNeed} $<span className="text-sm font-normal text-muted-foreground">/mois</span></p>
+              <p className="text-2xl font-bold text-primary">{beneficiary.monthlyNeed} FCFA<span className="text-sm font-normal text-muted-foreground">/mois</span></p>
             </div>
             {beneficiary.sponsored ? (
               <span className="text-accent font-semibold text-sm">✓ Déjà parrainé</span>

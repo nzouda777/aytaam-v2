@@ -12,12 +12,14 @@ interface AnimatedCounterProps {
 const AnimatedCounter = ({ end, duration = 2000, prefix = "", suffix = "", decimals = 0 }: AnimatedCounterProps) => {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-50px" });
-  const hasAnimated = useRef(false);
+  const isInView = useInView(ref, { margin: "-50px" });
+  const prevEnd = useRef(end);
 
   useEffect(() => {
-    if (!isInView || hasAnimated.current) return;
-    hasAnimated.current = true;
+    if (!isInView) return;
+
+    const startValue = prevEnd.current !== end ? 0 : 0;
+    prevEnd.current = end;
 
     const startTime = Date.now();
     const tick = () => {
@@ -25,7 +27,7 @@ const AnimatedCounter = ({ end, duration = 2000, prefix = "", suffix = "", decim
       const progress = Math.min(elapsed / duration, 1);
       // ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * end));
+      setCount(Math.round(startValue + eased * (end - startValue)));
       if (progress < 1) requestAnimationFrame(tick);
       else setCount(end);
     };

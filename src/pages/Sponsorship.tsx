@@ -1,27 +1,133 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, Filter, Users } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Layout from "@/components/Layout";
 import SponsorCard from "@/components/SponsorCard";
 import BeneficiaryModal from "@/components/BeneficiaryModal";
 import AnimatedCounter from "@/components/AnimatedCounter";
-import { orphans, widows, families } from "@/data/mockData";
 
 type Tab = "orphans" | "widows" | "families";
 
-const allBeneficiaries = [
-  ...orphans.map((o) => ({ ...o, _type: "orphan" as const })),
-  ...widows.map((w) => ({ ...w, _type: "widow" as const })),
-  ...families.map((f) => ({ ...f, _type: "family" as const })),
-];
-
-const totalWaiting = allBeneficiaries.filter((b) => !b.sponsored).length;
+const calculateAge = (dateOfBirth: string): number => {
+  const today = new Date();
+  const birth = new Date(dateOfBirth);
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+};
 
 const Sponsorship = () => {
   const [activeTab, setActiveTab] = useState<Tab>("orphans");
   const [search, setSearch] = useState("");
-  const [selectedBeneficiary, setSelectedBeneficiary] = useState<typeof allBeneficiaries[0] | null>(null);
+  const [selectedBeneficiary, setSelectedBeneficiary] = useState<any | null>(null);
+  const [apiData, setApiData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBeneficiaries = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/beneficiaries");
+        const data = await response.json();
+        setApiData(data.data || []);
+      } catch (error) {
+        console.error("Error fetching beneficiaries:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBeneficiaries();
+  }, []);
+
+  // Transform API data into orphans, widows, and families lists
+  const { orphans, widows, families } = useMemo(() => {
+    const orphanMap = new Map<number, any>();
+    const widowMap = new Map<number, any>();
+    const familyMap = new Map<number, any>();
+
+    for (const item of apiData) {
+      const { orphan, family } = item;
+
+      // --- Orphans (deduplicated by orphan.id) ---
+      if (orphan && !orphanMap.has(orphan.id)) {
+        orphanMap.set(orphan.id, {
+          id: String(orphan.id),
+          name: `${orphan.first_name} ${orphan.last_name}`,
+          age: orphan.date_of_birth ? calculateAge(orphan.date_of_birth) : undefined,
+          location: family?.city || "Non spécifié",
+          story: [
+            orphan.health_status && orphan.health_status !== "Bon état de santé"
+              ? `Santé : ${orphan.health_status}.`
+              : "",
+            orphan.special_needs ? `Besoins : ${orphan.special_needs}.` : "",
+            orphan.school_name ? `Scolarisé(e) à ${orphan.school_name} (${orphan.school_level}).` : "Non scolarisé(e).",
+          ]
+            .filter(Boolean)
+            .join("\n") || "En attente de parrainage.",
+          monthlyNeed: parseFloat(item.monthly_amount) || 0,
+          image: orphan.photo || "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=400",
+          sponsored: orphan.is_sponsored || false,
+        });
+      }
+
+      // --- Widows (deduplicated by family.id, using widow info) ---
+      if (family && !widowMap.has(family.id)) {
+        widowMap.set(family.id, {
+          id: `w-${family.id}`,
+          name: family.widow_name,
+          age: family.widow_date_of_birth ? calculateAge(family.widow_date_of_birth) : undefined,
+          location: `${family.city}${family.region ? `, ${family.region}` : ""}`,
+          story: [
+            family.needs ? `Besoins : ${family.needs}. ` : "",
+            family.notes || "",
+          ]
+            .filter(Boolean)
+            .join("\n") || "En attente de soutien.",
+          monthlyNeed: parseFloat(family.total_needs) - parseFloat(family.total_received) > 0
+            ? Math.round((parseFloat(family.total_needs)) / 12)
+            : 0,
+          children: family.orphans_count || 0,
+          image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400",
+          sponsored: family.status === "active",
+        });
+      }
+
+      // --- Families (deduplicated by family.id) ---
+      if (family && !familyMap.has(family.id)) {
+        familyMap.set(family.id, {
+          id: `f-${family.id}`,
+          name: `Famille ${family.widow_name.split(" ").pop()}`,
+          location: `${family.city}${family.region ? `, ${family.region}` : ""}`,
+          members: (family.orphans_count || 0) + 1, // orphans + widow
+          story: [
+            family.needs ? `Besoins : ${family.needs}.  ` : "",
+            family.notes || "",
+            family.address || "",
+          ]
+            .filter(Boolean)
+            .join("\n") || "Famille en attente de soutien.",
+          monthlyNeed: parseFloat(family.total_needs) - parseFloat(family.total_received) > 0
+            ? Math.round((parseFloat(family.total_needs) / 12))
+            : 0,
+          image: "https://images.unsplash.com/photo-1609220136736-443140cffec6?w=400",
+          sponsored: family.status === "active",
+        });
+      }
+    }
+
+    return {
+      orphans: Array.from(orphanMap.values()),
+      widows: Array.from(widowMap.values()),
+      families: Array.from(familyMap.values()),
+    };
+  }, [apiData]);
+
+  const totalWaiting = [
+    ...orphans.filter((o) => !o.sponsored),
+    ...widows.filter((w) => !w.sponsored),
+    ...families.filter((f) => !f.sponsored),
+  ].length;
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "orphans", label: "Orphelins", count: orphans.length },
@@ -37,21 +143,30 @@ const Sponsorship = () => {
 
     if (search) {
       const q = search.toLowerCase();
-      data = data.filter((d: any) => d.name.toLowerCase().includes(q) || d.location.toLowerCase().includes(q));
+      data = data.filter(
+        (d: any) =>
+          d.name.toLowerCase().includes(q) || d.location.toLowerCase().includes(q)
+      );
     }
     return data;
   };
 
   const filtered = getFiltered();
-
+  // Count unsponsored beneficiaries (reactive via useMemo)
+  const totalUnsponsored = useMemo(() =>
+    orphans.filter((o) => !o.sponsored).length +
+    widows.filter((w) => !w.sponsored).length +
+    families.filter((f) => !f.sponsored).length,
+    [orphans, widows, families]
+  );
   return (
     <Layout>
       {/* Enhanced Hero */}
       <div className="gradient-hero pattern-islamic py-20">
         <div className="container mx-auto px-4 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <h1 className="font-display text-3xl md:text-5xl font-bold text-primary-foreground mb-4">Programme de parrainage</h1>
-            <p className="text-primary-foreground/80 max-w-xl mx-auto mb-8">
+            <h1 className="font-display text-3xl md:text-5xl font-bold text-foreground mb-4">Programme de parrainage</h1>
+            <p className="text-foreground/80 max-w-xl mx-auto mb-8">
               Offrez un soutien mensuel régulier aux orphelins, veuves et familles qui en ont le plus besoin.
             </p>
             <motion.div
@@ -61,8 +176,8 @@ const Sponsorship = () => {
               className="inline-flex items-center gap-3 bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 rounded-full px-6 py-3"
             >
               <Users className="w-5 h-5 text-gold" />
-              <span className="text-primary-foreground font-semibold text-lg">
-                <AnimatedCounter end={totalWaiting} /> bénéficiaires en attente de parrainage
+              <span className="text-foreground font-semibold text-lg">
+                <AnimatedCounter end={totalUnsponsored} /> bénéficiaires en attente de parrainage
               </span>
             </motion.div>
           </motion.div>
@@ -77,11 +192,10 @@ const Sponsorship = () => {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
-                  activeTab === tab.key
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "bg-secondary text-secondary-foreground hover:bg-muted"
-                }`}
+                className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${activeTab === tab.key
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "bg-secondary text-secondary-foreground hover:bg-muted"
+                  }`}
               >
                 {tab.label} ({tab.count})
               </button>
@@ -99,26 +213,30 @@ const Sponsorship = () => {
         </div>
 
         {/* Grid */}
-        <motion.div
-          key={activeTab + search}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          {filtered.map((item: any) => (
-            <SponsorCard
-              key={item.id}
-              {...item}
-              type={activeTab === "orphans" ? "orphan" : activeTab === "widows" ? "widow" : "family"}
-              onClick={() => setSelectedBeneficiary({ ...item, _type: activeTab === "orphans" ? "orphan" : activeTab === "widows" ? "widow" : "family" })}
-            />
-          ))}
-          {filtered.length === 0 && (
-            <div className="col-span-full text-center py-12 text-muted-foreground">
-              Aucun résultat trouvé pour « {search} »
-            </div>
-          )}
-        </motion.div>
+        {loading ? (
+          <div className="text-center py-12 text-muted-foreground">Chargement des bénéficiaires...</div>
+        ) : (
+          <motion.div
+            key={activeTab + search}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {filtered.map((item: any) => (
+              <SponsorCard
+                key={item.id}
+                {...item}
+                type={activeTab === "orphans" ? "orphan" : activeTab === "widows" ? "widow" : "family"}
+                onClick={() => setSelectedBeneficiary({ ...item, _type: activeTab === "orphans" ? "orphan" : activeTab === "widows" ? "widow" : "family" })}
+              />
+            ))}
+            {filtered.length === 0 && (
+              <div className="col-span-full text-center py-12 text-muted-foreground">
+                {search ? `Aucun résultat trouvé pour « ${search} »` : "Aucun bénéficiaire trouvé."}
+              </div>
+            )}
+          </motion.div>
+        )}
       </div>
 
       {/* Modal */}

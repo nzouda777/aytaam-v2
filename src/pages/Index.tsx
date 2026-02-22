@@ -27,7 +27,7 @@ const partners = [
 
 const fetchDonationCauses = async (): Promise<DonationCause[]> => {
   try {
-    const response = await fetch('http://localhost:8000/api/campaigns');
+    const response = await fetch('/api/campaigns');
     if (!response.ok) {
       throw new Error('Failed to fetch donation causes');
     }
@@ -48,7 +48,7 @@ const Index = () => {
   useEffect(() => {
     fetchDonationCauses().then((data) => setDonationCauses(data.data));
   }, []);
-  
+
   return (
     <Layout>
       {/* Hero with parallax */}

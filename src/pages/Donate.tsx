@@ -14,7 +14,7 @@ const presetAmounts = [25, 50, 100, 250, 500, 1000];
 
 const fetchDonationCauses = async (): Promise<DonationCause[]> => {
   try {
-    const response = await fetch('http://localhost:8000/api/campaigns');
+    const response = await fetch('/api/campaigns');
     if (!response.ok) {
       throw new Error('Failed to fetch donation causes');
     }
@@ -39,7 +39,7 @@ const Donate = () => {
   const [amount, setAmount] = useState(searchParams.get("amount") || "");
   const [customAmount, setCustomAmount] = useState(searchParams.get("amount") && !presetAmounts.includes(Number(searchParams.get("amount"))) ? searchParams.get("amount")! : "");
   const [formData, setFormData] = useState({ firstName: "", lastName: "", email: "", phone: "" });
-  const [paymentData, setPaymentData] = useState({ cardNumber: "", expiry: "", cvv: "", nameOnCard: "" });
+  const [paymentData, setPaymentData] = useState({ phoneNumber: "", expiry: "", cvv: "", nameOnCard: "" });
   const [processing, setProcessing] = useState(false);
   const [donationCauses, setDonationCauses] = useState<DonationCause[]>([]);
 
@@ -118,13 +118,43 @@ const Donate = () => {
     window.scrollTo(0, 0);
   };
 
-  const handleConfirm = () => {
-    if (!paymentData.cardNumber || !paymentData.expiry || !paymentData.cvv || !paymentData.nameOnCard) {
-      toast.error("Veuillez remplir tous les détails de paiement");
+  const handleConfirm = async () => {
+    // if (!paymentData.phoneNumber || !paymentData.expiry || !paymentData.cvv || !paymentData.nameOnCard) {
+    //   toast.error("Veuillez remplir tous les détails de paiement");
+    //   return;
+    // }
+    // setProcessing(true);
+    // window.scrollTo(0, 0);
+    if (!paymentData.phoneNumber) {
+      toast.error("Veuillez entrer votre numéro de téléphone");
       return;
     }
-    setProcessing(true);
-    window.scrollTo(0, 0);
+    if (!formData.firstName || !formData.email) {
+      toast.error("Veuillez remplir les champs obligatoires");
+      return;
+    }
+    const response = await fetch("http://localhost:8000/api/donations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+
+      },
+      body: JSON.stringify({
+        donor_phone: paymentData.phoneNumber,
+        donor_name: formData.firstName + " " + formData.lastName,
+        donor_email: formData.email,
+        amount: finalAmount,
+        campaign_id: selectedCause,
+        payment_method: "mobile_money",
+      }),
+    });
+    console.log(response)
+    if (!response.ok) {
+      throw new Error("Failed to create donation");
+    }
+    const data = await response.json();
+    window.location.href = data.authorization_url;
   };
 
   const handleProcessingComplete = useCallback(() => {
@@ -137,7 +167,7 @@ const Donate = () => {
     <Layout>
       <div className="gradient-hero pattern-islamic py-16">
         <div className="container mx-auto px-4 text-center">
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="font-display text-3xl md:text-4xl font-bold text-primary-foreground mb-2">
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
             Faire un don
           </motion.h1>
         </div>
@@ -203,17 +233,17 @@ const Donate = () => {
                           : "border-border bg-card text-card-foreground hover:border-primary/50"
                           }`}
                       >
-                        {a} $
+                        {a} FCFA
                       </motion.button>
                     ))}
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">Ou entrez un montant personnalisé</Label>
                     <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"></span>
                       <Input
                         type="number"
-                        placeholder="0.00"
+                        placeholder="0.00 FCFA"
                         className="pl-7"
                         value={customAmount}
                         onChange={(e) => handleAmountChange(e.target.value, true)}
@@ -223,7 +253,7 @@ const Donate = () => {
                 </div>
 
                 <Button onClick={handleDonate} size="lg" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
-                  Continuer — {finalAmount || "0"} $
+                  Continuer — {finalAmount || "0"} FCFA
                 </Button>
               </motion.div>
             )}
@@ -288,34 +318,48 @@ const Donate = () => {
                   </div>
                 </div>
 
+
+                {/* Orange money || MTN Money payment */}
                 <div>
-                  <Label>Nom sur la carte *</Label>
-                  <div className="relative">
-                    <Input value={paymentData.nameOnCard} onChange={(e) => setPaymentData({ ...paymentData, nameOnCard: e.target.value })} placeholder="Nom complet sur la carte" />
-                    {isFieldValid(paymentData.nameOnCard) && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />}
-                  </div>
-                </div>
-                <div>
-                  <Label>Numéro de carte *</Label>
+                  <Label>Numéro Orange Money / MTN Money *</Label>
                   <div className="relative">
                     <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input className="pl-10 pr-10" value={paymentData.cardNumber} onChange={(e) => setPaymentData({ ...paymentData, cardNumber: e.target.value })} placeholder="4242 4242 4242 4242" maxLength={19} />
-                    {paymentData.cardNumber.length >= 16 && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />}
+                    <Input className="pl-10 pr-10" value={paymentData.phoneNumber} onChange={(e) => setPaymentData({ ...paymentData, phoneNumber: e.target.value })} placeholder="6 XXX XXX XXX" maxLength={9} />
+                    {paymentData.phoneNumber.length >= 9 && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+
+                {/* Card payment */}
+                <div className="hidden">
                   <div>
-                    <Label>Expiration *</Label>
+                    <Label>Nom sur la carte *</Label>
                     <div className="relative">
-                      <Input value={paymentData.expiry} onChange={(e) => setPaymentData({ ...paymentData, expiry: e.target.value })} placeholder="MM/AA" maxLength={5} />
-                      {paymentData.expiry.length >= 4 && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />}
+                      <Input value={paymentData.nameOnCard} onChange={(e) => setPaymentData({ ...paymentData, nameOnCard: e.target.value })} placeholder="Nom complet sur la carte" />
+                      {isFieldValid(paymentData.nameOnCard) && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />}
                     </div>
                   </div>
-                  <div>
-                    <Label>CVV *</Label>
+                  <div >
+                    <Label>Numéro de carte *</Label>
                     <div className="relative">
-                      <Input type="password" value={paymentData.cvv} onChange={(e) => setPaymentData({ ...paymentData, cvv: e.target.value })} placeholder="•••" maxLength={4} />
-                      {paymentData.cvv.length >= 3 && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />}
+                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input className="pl-10 pr-10" value={paymentData.phoneNumber} onChange={(e) => setPaymentData({ ...paymentData, phoneNumber: e.target.value })} placeholder="4242 4242 4242 4242" maxLength={19} />
+                      {paymentData.phoneNumber.length >= 16 && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Expiration *</Label>
+                      <div className="relative">
+                        <Input value={paymentData.expiry} onChange={(e) => setPaymentData({ ...paymentData, expiry: e.target.value })} placeholder="MM/AA" maxLength={5} />
+                        {paymentData.expiry.length >= 4 && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />}
+                      </div>
+                    </div>
+                    <div>
+                      <Label>CVV *</Label>
+                      <div className="relative">
+                        <Input type="password" value={paymentData.cvv} onChange={(e) => setPaymentData({ ...paymentData, cvv: e.target.value })} placeholder="•••" maxLength={4} />
+                        {paymentData.cvv.length >= 3 && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />}
+                      </div>
                     </div>
                   </div>
                 </div>
